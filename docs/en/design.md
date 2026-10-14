@@ -484,7 +484,7 @@ strata/                  Python package (standard library only)
 scripts/
   hook.py                hook entry, called by hooks/run.sh
   strata                 command line entry (`strata validate`, `strata cycle …`)   — M1
-skills/                  slash commands, written in English                         — M4
+skills/                  slash commands, written in English            — M1 (thin), M4 (cycles)
 agents/                  subagents, written in English                              — M4
 templates/               project scaffolds per language (en, ko)                    — M1
 tests/                   unittest suites and fixtures
@@ -543,12 +543,18 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 | Milestone | Scope | Done when |
 | --- | --- | --- |
 | **M0 — Foundation** | Manifest loader and schema, layer and track guard, message catalog, i18n check, repository conventions | Guard tests pass on two fixtures; plugin installs from this repository |
-| **M1 — Records and validation** | `strata validate` (front-matter, sections, evidence tags), append-only record, registers, `strata init` scaffold | A scaffolded project validates clean in both languages |
-| **M2 — Context selection** | Section index, scored search with layer and status weights, `strata context`, per-step access scope and the loader that returns `files_to_read` and `writable_paths` (§ 8); session brief with tracks and start documents (§ 7.3) | Golden queries pass on both fixtures; a step without an access entry is refused |
+| **M1 — Records and validation** | `strata validate` (front-matter, sections, evidence tags), append-only record, registers, `strata init` scaffold; thin skills `/strata:init`, `/strata:validate` and `/strata:status` | A scaffolded project validates clean in both languages; the three skills work on it |
+| **M2 — Context selection** | Section index, scored search with layer and status weights, `strata context`, per-step access scope and the loader that returns `files_to_read` and `writable_paths` (§ 8); session brief with tracks and start documents (§ 7.3); thin skill `/strata:context` | Golden queries pass on both fixtures; a step without an access entry is refused; `/strata:context` returns ranked sections on a fixture project |
 | **M3 — Cycle engine** | Generic state machine from `[[cycles]]`: steps, rounds, asks, verdicts, answer-file approval; change files and `strata cycle apply` with pre-flight and decision numbering (§ 7.2); open cycles in the session brief | A cycle can stop on every hard-stop reason; approval without an answer file is refused; apply on a drifted target writes nothing |
-| **M4 — Agents and skills** | Generic author, critic, arbiter and verifier agents that start from the loader | One end-to-end cycle runs on a fixture project |
+| **M4 — Cycle skills and agents** | Skills that drive cycles through the engine, and generic author, critic, arbiter and verifier agents that start from the loader | One end-to-end cycle runs on a fixture project |
 | **M5 — Roles and gates** | Role declaration, shadow ledger, gate ownership | Out-of-role writes appear in the ledger; gate answers name the role |
 | **M6 — Coordination (optional)** | Work-item adapter contract and a coordinator built on native Claude Code sessions | Defined only after a second real project uses M0–M5 |
+
+**Skills ship with their tools.** A skill that only wraps one command ships in the same milestone as
+that command, so each milestone leaves something a user can run. Skills that drive cycles, and the
+agents they call, wait for the loader (M2) and the cycle engine (M3). Before those exist, a cycle skill
+would have to count limits in prose and write project paths into agent text — the two things P4 and
+§ 1 rule out.
 
 ## 13. Open questions
 
