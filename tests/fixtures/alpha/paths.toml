@@ -1,0 +1,12 @@
+# Scenario paths for the shared guard tests. Same keys in every fixture.
+frozen = "tracks/business/archive/research/r1.md"
+track_dir = "tracks/business"
+frozen_dir = "tracks/business/archive"
+append_only = "tracks/business/decisions/D-001.md"
+living = "tracks/product/plan/index.md"
+immutable = "docs/originals/deck.md"
+closed_track = "tracks/delivery/sprints/s1.md"
+scratch = "tracks/business/archive/refinements/RF-001/plan.md"
+free = "notes/todo.md"
+frozen_status = "accepted"
+draft_status = "draft"

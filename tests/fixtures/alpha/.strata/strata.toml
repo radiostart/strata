@@ -1,0 +1,77 @@
+# Fixture "alpha": English project, tracks under tracks/.
+[project]
+name = "alpha"
+language = "en"
+schema = 1
+
+[[tracks]]
+id = "business"
+path = "tracks/business"
+open = true
+
+[[tracks]]
+id = "product"
+path = "tracks/product"
+open = true
+
+[[tracks]]
+id = "delivery"
+path = "tracks/delivery"
+open = false
+
+[[layers]]
+id = "cycle-work"
+mode = "scratch"
+paths = ["tracks/*/archive/refinements/**"]
+
+[[layers]]
+id = "evidence"
+mode = "frozen"
+paths = ["tracks/*/archive/**"]
+
+[[layers]]
+id = "history"
+mode = "append-only"
+paths = ["tracks/*/decisions/**"]
+
+[[layers]]
+id = "current"
+mode = "living"
+paths = ["tracks/*/plan/**"]
+
+[[layers]]
+id = "originals"
+mode = "immutable"
+paths = ["docs/originals/**"]
+
+[documents]
+frozen_statuses = ["accepted", "done", "superseded"]
+
+[[documents.types]]
+id = "decision"
+frontmatter = ["type", "id", "title", "date", "status"]
+sections = ["Context", "Decision", "Consequences"]
+
+[[evidence.tags]]
+tag = "measured"
+label = "[measured]"
+reference = "P-\\d+"
+
+[[cycles]]
+id = "refine"
+prefix = "RF"
+track = "business"
+folder = "archive/refinements"
+steps = ["intake", "analysis", "plan", "critique", "verdict"]
+retry_to = ["analysis", "plan"]
+approver = "owner"
+
+[[roles]]
+id = "owner"
+writes = ["**"]
+gates = ["refine.approve"]
+
+[[registers]]
+id = "upward"
+prefix = "UP"
+path = "tracks/business/registers/upward.md"

@@ -1,0 +1,77 @@
+# Fixture "beta": Korean project, different track names and Korean path segments.
+[project]
+name = "beta"
+language = "ko"
+schema = 1
+
+[[tracks]]
+id = "strategy"
+path = "work/strategy"
+open = true
+
+[[tracks]]
+id = "design"
+path = "work/design"
+open = true
+
+[[tracks]]
+id = "build"
+path = "work/build"
+open = false
+
+[[layers]]
+id = "drafts"
+mode = "scratch"
+paths = ["work/*/근거/사이클/**"]
+
+[[layers]]
+id = "basis"
+mode = "frozen"
+paths = ["work/*/근거/**"]
+
+[[layers]]
+id = "ledger"
+mode = "append-only"
+paths = ["work/*/결정/**"]
+
+[[layers]]
+id = "now"
+mode = "living"
+paths = ["work/*/현재/**"]
+
+[[layers]]
+id = "raw"
+mode = "immutable"
+paths = ["원문/**"]
+
+[documents]
+frozen_statuses = ["확정", "폐기"]
+
+[[documents.types]]
+id = "decision"
+frontmatter = ["type", "id", "title", "date", "status"]
+sections = ["배경", "결정", "영향"]
+
+[[evidence.tags]]
+tag = "measured"
+label = "[실측]"
+reference = "P-\\d+"
+
+[[cycles]]
+id = "revise"
+prefix = "RV"
+track = "strategy"
+folder = "근거/사이클"
+steps = ["접수", "분석", "변경안", "검토", "판정"]
+retry_to = ["분석", "변경안"]
+approver = "lead"
+
+[[roles]]
+id = "lead"
+writes = ["**"]
+gates = ["revise.approve"]
+
+[[registers]]
+id = "reports"
+prefix = "RP"
+path = "work/strategy/등록부/상향.md"

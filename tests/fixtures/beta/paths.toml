@@ -1,0 +1,12 @@
+# 공통 가드 시험의 시나리오 경로. 모든 고정물이 같은 키를 쓴다.
+frozen = "work/strategy/근거/조사/r1.md"
+track_dir = "work/strategy"
+frozen_dir = "work/strategy/근거"
+append_only = "work/strategy/결정/D-001.md"
+living = "work/design/현재/색인.md"
+immutable = "원문/발표.md"
+closed_track = "work/build/스프린트/s1.md"
+scratch = "work/strategy/근거/사이클/RV-001/변경안.md"
+free = "메모/할일.md"
+frozen_status = "확정"
+draft_status = "초안"

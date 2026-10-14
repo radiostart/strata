@@ -1,0 +1,15 @@
+{
+  "name": "strata",
+  "description": "The strata plugin: an operating layer for repositories of layered, approved documents written by AI agents.",
+  "owner": {
+    "name": "radiostart",
+    "url": "https://github.com/radiostart"
+  },
+  "plugins": [
+    {
+      "name": "strata",
+      "source": ".",
+      "description": "Operating layer for repositories of layered, approved documents written by AI agents."
+    }
+  ]
+}

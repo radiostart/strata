@@ -1,0 +1,18 @@
+# strata user-facing messages — English (source).
+# Placeholders in {braces} are filled by the caller. Keep keys identical across languages.
+
+[guard]
+prefix = "strata blocked this write"
+immutable = "'{path}' is in layer '{layer}' (immutable). Nothing under it may be created, changed or deleted."
+frozen = "'{path}' is in layer '{layer}' (frozen). Existing files cannot be changed or deleted; add a new file instead."
+append_only_overwrite = "'{path}' is in layer '{layer}' (append-only). Do not replace the whole file; edit it in place or add a new record."
+append_only_delete = "'{path}' is in layer '{layer}' (append-only). Records are never deleted; mark them superseded instead."
+living_frozen_status = "'{path}' has status '{status}', which is frozen. It may be edited, but not overwritten or deleted."
+tree_holds_protected = "'{path}' contains protected files (for example '{example}'). Recursive delete or move is blocked."
+tree_too_large = "'{path}' is too large to inspect and overlaps protected layers. Recursive delete or move is blocked."
+closed_track = "'{path}' is in track '{track}', which is not open. Open it in .strata/strata.toml (open = true) when that decision is made."
+manifest_invalid = "The project manifest .strata/strata.toml is invalid, so writes are blocked until it is fixed. .strata/ itself stays writable."
+manifest_problems = "Problems: {problems}"
+unparsable = "This command could not be parsed safely and it mentions protected paths."
+no_python = "strata needs Python 3.11 or later to check writes in this project, and none was found."
+bypass = "If this is intended and approved, restart Claude Code with {env}=1 in its environment. Setting it inside a command has no effect."
