@@ -1,7 +1,7 @@
 {
   "name": "strata",
   "displayName": "strata",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Operating layer for repositories of layered, approved documents written by AI agents: path-enforced layer modes, closed tracks, and (planned) bounded multi-agent cycles with human approval gates. Inert without a .strata/strata.toml manifest.",
   "author": {
     "name": "Jae Pil SEO",

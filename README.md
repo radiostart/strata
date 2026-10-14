@@ -8,8 +8,9 @@ strata is a [Claude Code](https://claude.com/claude-code) plugin. It is for proj
 build on each other — a business plan constrains a product spec, which constrains a development plan —
 and where several AI conversations write those documents.
 
-> **Status: early (0.1).** The layer and track guard works and is tested. Cycles, records, agents and
-> skills are designed but not built yet. See the [roadmap](docs/en/design.md#12-roadmap).
+> **Status: early (0.2).** The layer and track guard, document validation, run records, registers and
+> project scaffolding work and are tested. Context selection, cycles and agents are designed but not
+> built yet. See the [roadmap](docs/en/design.md#12-roadmap).
 
 ## What it does
 
@@ -39,7 +40,11 @@ Requirements: Python 3.11 or later on `PATH`. No other dependencies.
 
 ## Use
 
-strata does nothing until a project has a manifest at `.strata/strata.toml`:
+In Claude Code, start a project with `/strata:init`, then use `/strata:validate` and `/strata:status`.
+The [command reference](docs/en/cli.md) describes every command.
+
+strata does nothing until a project has a manifest at `.strata/strata.toml`. `strata init` writes one
+from a template; a minimal manifest looks like this:
 
 ```toml
 [project]
@@ -75,7 +80,8 @@ python3 -m unittest discover -s tests
 python3 tools/i18n_check.py
 ```
 
-Repository conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md).
+Repository conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.md). The current
+state and the next milestone's work breakdown are in the [development guide](docs/en/development.md).
 
 ## Origin
 

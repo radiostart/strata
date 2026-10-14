@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""strata command line. Run with Python 3.11 or later: python3 scripts/strata --help"""
+
+import sys
+
+if sys.version_info < (3, 11):
+    sys.stderr.write("strata needs Python 3.11 or later (found %d.%d).\n" % sys.version_info[:2])
+    sys.exit(2)
+
+from pathlib import Path  # noqa: E402
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from strata.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())

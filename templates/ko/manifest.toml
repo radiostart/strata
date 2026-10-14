@@ -1,0 +1,76 @@
+# strata 매니페스트. `strata init` 이 만들었다. 모르는 키는 오류다.
+# 참조: https://github.com/radiostart/strata/blob/main/docs/ko/design.md#6-매니페스트
+
+[project]
+name = "{{project}}"
+language = "ko"
+schema = 1
+
+# 트랙은 자기 폴더를 가진 작업 단계다. 닫힌 트랙에 쓰면 막힌다.
+[[tracks]]
+id = "main"
+path = "work"
+open = true
+
+# 층은 적은 순서로 맞춰 보고, 처음 맞는 것이 이긴다.
+[[layers]]
+id = "evidence"
+mode = "frozen"            # 새 파일만 · 이미 있는 것은 바뀌지 않는다
+paths = ["work/evidence/**"]
+
+[[layers]]
+id = "history"
+mode = "append-only"       # 통째 교체 · 삭제 금지 · superseded 표시는 그 자리에서 고친다
+paths = ["work/decisions/**", "work/registers/**"]
+
+[[layers]]
+id = "current"
+mode = "living"            # 상태가 고정되기 전까지 자유롭게 고친다
+paths = ["work/current/**"]
+
+[documents]
+frozen_statuses = ["accepted", "superseded"]
+
+[[documents.types]]
+id = "decision"
+frontmatter = ["type", "id", "title", "date", "status"]
+sections = ["배경", "결정", "영향", "재검토 조건"]
+
+[[documents.types]]
+id = "research"
+frontmatter = ["type", "title", "date", "status"]
+sections = ["요약", "발견", "출처"]
+
+[[documents.types]]
+id = "plan"
+frontmatter = ["type", "title", "date", "status"]
+sections = []
+
+# 증거 태그. `reference` 가 있는 태그는 같은 줄에 그 패턴이 있어야 한다.
+[[evidence.tags]]
+tag = "measured"
+label = "[실측]"
+reference = "P-\\d+"
+
+[[evidence.tags]]
+tag = "fact"
+label = "[사실]"
+reference = "https?://"
+
+[[evidence.tags]]
+tag = "review"
+label = "[검토]"
+reference = "D-\\d+"
+
+[[evidence.tags]]
+tag = "estimate"
+label = "[추정]"
+
+[[evidence.tags]]
+tag = "assumption"
+label = "[가정]"
+
+[[registers]]
+id = "issues"
+prefix = "I"
+path = "work/registers/issues.md"

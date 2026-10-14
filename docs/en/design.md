@@ -132,6 +132,8 @@ cannot be crossed.
 These come directly from guard regressions in the earlier project and are tested from day one:
 
 - **Inert without a manifest.** In a repository with no `.strata/strata.toml` every hook exits 0.
+- **Run records are always append-only.** `.strata/records/**` is judged as an append-only layer in
+  every project, before any layer the manifest declares.
 - **Fail closed, but never lock the way out.** If the manifest exists but cannot be read, writes to
   protected zones are blocked, while `.strata/**` stays writable so the manifest can be fixed.
 - **Outside the project is not judged.** Paths outside the repository root pass.
@@ -477,16 +479,23 @@ strata/                  Python package (standard library only)
   bashwrites.py          conservative write-target extraction from Bash
   guard.py               layer and track decisions
   messages.py            message catalog lookup (en, ko)
+  mdtable.py             Markdown table rows: escape, split, render
+  validate.py            document checks on text (front matter, sections, evidence tags)
+  records.py             monthly append-only run records
+  registers.py           register files: next ID, add, close, list
+  scaffold.py            `strata init` from templates/<lang>/
+  status.py              read-only project summary
+  cli.py                 command line: init, validate, status, record, register
   context/               section index, scoring, tokenisers per language, step loader   — M2
   brief.py               session brief printed at SessionStart                       — M2
   cycle/                 cycle state machine, change files, apply                    — M3
   i18n/en.toml, ko.toml  user-facing strings
 scripts/
   hook.py                hook entry, called by hooks/run.sh
-  strata                 command line entry (`strata validate`, `strata cycle …`)   — M1
+  strata                 command line entry; logic in strata/cli.py
 skills/                  slash commands, written in English            — M1 (thin), M4 (cycles)
 agents/                  subagents, written in English                              — M4
-templates/               project scaffolds per language (en, ko)                    — M1
+templates/<lang>/        project scaffold; manifest.toml becomes .strata/strata.toml
 tests/                   unittest suites and fixtures
 tools/                   repository maintenance tools (i18n_check, …)
 docs/en/, docs/ko/       documentation, English source and Korean translation
@@ -539,6 +548,9 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 - **Translations are tested.** `tools/i18n_check.py` runs in the suite.
 
 ## 12. Roadmap
+
+**Done:** M0 and M1. The current state and the work breakdown of the next milestone are in
+[development.md](development.md).
 
 | Milestone | Scope | Done when |
 | --- | --- | --- |

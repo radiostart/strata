@@ -1,4 +1,4 @@
-<!-- i18n: source=docs/en/design.md sha=6f0a3cdfb888 -->
+<!-- i18n: source=docs/en/design.md sha=31a7d3bf0a23 -->
 # strata — 설계
 
 > **상태: 초안 0.1 · 2026-10-14 갱신.** 이 문서는 [`docs/en/design.md`](../en/design.md) 의 한국어 번역이다. 정본은 영어
@@ -129,6 +129,8 @@ strata 가 지키려고 있는 규칙이다. 하나하나가 먼저 문장이고
 
 - **매니페스트가 없으면 아무것도 하지 않는다.** `.strata/strata.toml` 이 없는 저장소에서는 모든 훅이
   0 으로 끝난다.
+- **실행 기록은 언제나 추가 전용이다.** `.strata/records/**` 는 모든 프로젝트에서, 매니페스트가 선언한
+  어느 층보다 먼저 추가 전용 층으로 판정한다.
 - **닫힌 쪽으로 실패하되, 고칠 길은 막지 않는다.** 매니페스트가 있는데 읽을 수 없으면 보호 구역 쓰기를
   막는다. 매니페스트를 고칠 수 있도록 `.strata/**` 는 계속 쓸 수 있다.
 - **프로젝트 밖은 판정하지 않는다.** 저장소 루트 밖 경로는 통과한다.
@@ -460,16 +462,23 @@ strata/                  파이썬 패키지(표준 라이브러리만)
   bashwrites.py          Bash 에서 쓰기 대상을 보수적으로 뽑기
   guard.py               층 · 트랙 판정
   messages.py            메시지 카탈로그 조회(en · ko)
+  mdtable.py             마크다운 표 행: 이스케이프 · 나누기 · 그리기
+  validate.py            글자에 대한 문서 검사(프런트매터 · 절 · 증거 태그)
+  records.py             월별 추가 전용 실행 기록
+  registers.py           등록부 파일: 다음 ID · 추가 · 닫기 · 목록
+  scaffold.py            templates/<언어>/ 에서 `strata init`
+  status.py              읽기 전용 프로젝트 요약
+  cli.py                 명령줄: init · validate · status · record · register
   context/               절 색인 · 채점 · 언어별 토큰화 · 단계 로더                  — M2
   brief.py               SessionStart 에 찍는 시작 안내                              — M2
   cycle/                 사이클 상태 기계 · 변경 파일 · 반영                         — M3
   i18n/en.toml, ko.toml  사용자에게 보이는 문구
 scripts/
   hook.py                훅 입구. hooks/run.sh 가 부른다
-  strata                 명령줄 입구(`strata validate` · `strata cycle …`)        — M1
+  strata                 명령줄 입구 · 본체는 strata/cli.py
 skills/                  슬래시 명령. 영어로 쓴다                     — M1(얇은 것), M4(사이클)
 agents/                  서브에이전트. 영어로 쓴다                                 — M4
-templates/               언어별 프로젝트 뼈대(en · ko)                             — M1
+templates/<언어>/        프로젝트 뼈대 · manifest.toml 이 .strata/strata.toml 이 된다
 tests/                   unittest 묶음과 고정물
 tools/                   저장소 관리 도구(i18n_check …)
 docs/en/, docs/ko/       문서. 영어 원본과 한국어 번역
@@ -518,6 +527,8 @@ docs/en/, docs/ko/       문서. 영어 원본과 한국어 번역
 - **번역도 시험한다.** 시험 묶음이 `tools/i18n_check.py` 를 돌린다.
 
 ## 12. 로드맵
+
+**끝난 것:** M0 과 M1. 지금 상태와 다음 이정표의 작업 목록은 [development.md](development.md) 에 있다.
 
 | 이정표 | 범위 | 끝 조건 |
 | --- | --- | --- |

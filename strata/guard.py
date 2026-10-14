@@ -12,7 +12,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import BYPASS_ENV, MANIFEST_DIR, MANIFEST_REL, bashwrites, frontmatter
+from . import BYPASS_ENV, MANIFEST_DIR, MANIFEST_REL, RECORDS_REL, bashwrites, frontmatter
 from .manifest import Layer, Manifest, ManifestError, load
 from .paths import any_match, case_blind, find_root, normalize, pattern_prefix, rel_to
 
@@ -67,7 +67,12 @@ def _under(rel: str, prefix: str, fold: bool) -> bool:
     return rel == prefix or rel.startswith(prefix + "/")
 
 
+RECORDS_LAYER = Layer("strata-records", "append-only", (f"{RECORDS_REL}/**",))
+
+
 def _layer_for(m: Manifest, rel: str, fold: bool) -> Layer | None:
+    if any_match(RECORDS_LAYER.paths, rel, fold=fold):
+        return RECORDS_LAYER
     for layer in m.layers:
         if any_match(layer.paths, rel, fold=fold):
             return layer

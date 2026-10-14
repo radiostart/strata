@@ -1,4 +1,4 @@
-<!-- i18n: source=README.md sha=c99bd2e7f840 -->
+<!-- i18n: source=README.md sha=9d6d7a993ca1 -->
 # strata
 
 **AI 에이전트가 층을 이루고 승인을 거치는 문서를 만드는 저장소를 위한 운영 층.**
@@ -9,8 +9,9 @@ strata 는 [Claude Code](https://claude.com/claude-code) 플러그인이다. 문
 프로젝트를 위한 것이다 — 사업 기획이 제품 명세를 제약하고, 제품 명세가 개발 기획을 제약하며, 그 문서들을
 여러 AI 대화가 쓴다.
 
-> **상태: 초기(0.1).** 층 · 트랙 가드는 동작하고 시험을 거쳤다. 사이클 · 기록 · 에이전트 · 스킬은
-> 설계만 있고 아직 만들지 않았다. [로드맵](docs/ko/design.md#12-로드맵)을 보라.
+> **상태: 초기(0.2).** 층 · 트랙 가드, 문서 검증, 실행 기록, 등록부, 프로젝트 뼈대 만들기가 동작하고
+> 시험을 거쳤다. 문맥 선택 · 사이클 · 에이전트는 설계만 있고 아직 만들지 않았다.
+> [로드맵](docs/ko/design.md#12-로드맵)을 보라.
 
 ## 하는 일
 
@@ -39,7 +40,11 @@ claude plugin install strata@strata
 
 ## 사용
 
-프로젝트에 매니페스트 `.strata/strata.toml` 이 생기기 전까지 strata 는 아무것도 하지 않는다.
+Claude Code 에서 `/strata:init` 으로 프로젝트를 시작하고, `/strata:validate` 와 `/strata:status` 를 쓴다.
+모든 명령은 [명령 참조](docs/ko/cli.md)에 있다.
+
+프로젝트에 매니페스트 `.strata/strata.toml` 이 생기기 전까지 strata 는 아무것도 하지 않는다. `strata init`
+이 템플릿으로 매니페스트를 써 주며, 가장 작은 매니페스트는 이렇다.
 
 ```toml
 [project]
@@ -75,7 +80,8 @@ python3 -m unittest discover -s tests
 python3 tools/i18n_check.py
 ```
 
-기여자와 AI 에이전트를 위한 저장소 규약은 [CLAUDE.md](CLAUDE.md) 에 있다.
+기여자와 AI 에이전트를 위한 저장소 규약은 [CLAUDE.md](CLAUDE.md) 에 있다. 지금 상태와 다음 이정표의
+작업 목록은 [개발 안내](docs/ko/development.md)에 있다.
 
 ## 출발점
 

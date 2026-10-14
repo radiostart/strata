@@ -1,0 +1,76 @@
+# strata manifest, created by `strata init`. Unknown keys are errors.
+# Reference: https://github.com/radiostart/strata/blob/main/docs/en/design.md#6-the-manifest
+
+[project]
+name = "{{project}}"
+language = "en"
+schema = 1
+
+# A track is a work stage with its own folder. Writes into a closed track are blocked.
+[[tracks]]
+id = "main"
+path = "work"
+open = true
+
+# Layers are matched in order; the first match wins.
+[[layers]]
+id = "evidence"
+mode = "frozen"            # new files only; existing ones never change
+paths = ["work/evidence/**"]
+
+[[layers]]
+id = "history"
+mode = "append-only"       # never replaced or deleted; edit in place to mark superseded
+paths = ["work/decisions/**", "work/registers/**"]
+
+[[layers]]
+id = "current"
+mode = "living"            # edited freely until its status is frozen
+paths = ["work/current/**"]
+
+[documents]
+frozen_statuses = ["accepted", "superseded"]
+
+[[documents.types]]
+id = "decision"
+frontmatter = ["type", "id", "title", "date", "status"]
+sections = ["Context", "Decision", "Consequences", "Review conditions"]
+
+[[documents.types]]
+id = "research"
+frontmatter = ["type", "title", "date", "status"]
+sections = ["Summary", "Findings", "Sources"]
+
+[[documents.types]]
+id = "plan"
+frontmatter = ["type", "title", "date", "status"]
+sections = []
+
+# Evidence tags. A tag with `reference` must have a match on the same line.
+[[evidence.tags]]
+tag = "measured"
+label = "[measured]"
+reference = "P-\\d+"
+
+[[evidence.tags]]
+tag = "fact"
+label = "[fact]"
+reference = "https?://"
+
+[[evidence.tags]]
+tag = "review"
+label = "[review]"
+reference = "D-\\d+"
+
+[[evidence.tags]]
+tag = "estimate"
+label = "[estimate]"
+
+[[evidence.tags]]
+tag = "assumption"
+label = "[assumption]"
+
+[[registers]]
+id = "issues"
+prefix = "I"
+path = "work/registers/issues.md"

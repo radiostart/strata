@@ -1,7 +1,9 @@
 # strata — working agreement for AI agents
 
 strata is a Claude Code plugin. Its design is [`docs/en/design.md`](docs/en/design.md); read it before
-changing behaviour. This file holds only the rules for working in this repository.
+changing behaviour. Where the work stands and what to do next is in
+[`docs/en/development.md`](docs/en/development.md). This file holds only the rules for working in this
+repository.
 
 ## Language
 

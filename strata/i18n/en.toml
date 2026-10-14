@@ -16,3 +16,83 @@ manifest_problems = "Problems: {problems}"
 unparsable = "This command could not be parsed safely and it mentions protected paths."
 no_python = "strata needs Python 3.11 or later to check writes in this project, and none was found."
 bypass = "If this is intended and approved, restart Claude Code with {env}=1 in its environment. Setting it inside a command has no effect."
+
+[cli]
+no_manifest = "No strata project found at or above {path}. Run `strata init` to create one."
+manifest_invalid = "The manifest .strata/strata.toml is invalid:\n  {problems}"
+
+[init]
+unknown_language = "Unknown template language '{language}'. Available: {known}."
+bad_name = "'{name}' is not a valid project id. Use lowercase letters, digits and '-', starting with a letter."
+exists = "Nothing was written: '{path}' already exists. strata init never overwrites."
+created = "Created {count} files and folders for project '{name}' ({language}) in {root}:"
+next = "Next: read .strata/strata.toml, adjust tracks and layers, then run `strata validate`."
+
+[validate]
+frontmatter_unterminated = "front matter starts with '---' but never ends"
+unknown_type = "document type '{type}' is not declared in the manifest"
+missing_key = "front-matter key '{key}' is required for type '{type}'"
+missing_section = "section '{section}' is required for type '{type}'"
+tag_without_reference = "evidence tag {label} needs a reference matching {pattern} on the same line"
+not_utf8 = "file is not UTF-8 text"
+unreadable = "file cannot be read: {error}"
+summary = "{files} files checked: {errors} errors, {warnings} warnings."
+clean = "{files} files checked: no problems."
+
+[validate.severity]
+error = "error"
+warning = "warning"
+
+[status]
+header = "strata · {project} ({language})"
+tracks = "Tracks: {tracks}"
+track_open = "{id} open"
+track_closed = "{id} closed"
+layers = "Layers:"
+layer_line = "{id} · {mode} · {files} files"
+documents = "Documents: {documents} · without type: {untyped}"
+undeclared_type = "type '{type}' is used but not declared"
+registers = "Registers:"
+register_line = "{id} · {open} open of {total} · {path}"
+register_missing = "{id} · file missing: {path}"
+records = "Recent records:"
+record_line = "{time} · {kind} · {target} · {actor} · {result}"
+no_records = "No records yet."
+
+[record]
+title = "Records {month}"
+empty = "'{field}' must not be empty."
+too_long = "'{field}' is longer than {limit} characters. Put the details in a file and pass it with --evidence."
+added = "Recorded in {path} at {time}."
+none = "No records yet."
+
+[record.column]
+time = "Time"
+kind = "Kind"
+target = "Target"
+actor = "Actor"
+result = "Result"
+evidence = "Evidence"
+note = "Note"
+
+[register]
+title = "Register: {register}"
+unknown = "Unknown register '{register}'. Declared: {known}."
+missing_file = "Register '{register}' has no file at {path}. Create it with `strata init` or restore it; strata will not start numbering again from 1."
+empty_title = "The title must not be empty."
+empty_resolution = "The resolution must not be empty."
+unknown_id = "'{id}' does not belong to any declared register."
+no_such_id = "There is no entry {id} in register '{register}'."
+not_open = "{id} is not open (status: {status})."
+added = "Added {id} to register '{register}'."
+closed = "Closed {id}."
+none = "No entries."
+line = "{register} · {id} · {status} · {date} · {title}"
+
+[register.column]
+id = "ID"
+date = "Date"
+status = "Status"
+title = "Title"
+source = "Source"
+resolution = "Resolution"

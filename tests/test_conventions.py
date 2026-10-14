@@ -45,7 +45,7 @@ def behavioural_strings(path) -> str:
 
         walk(json.loads(text))
         return "\n".join(out)
-    if path.suffix == ".py":
+    if path.suffix == ".py" or text.startswith("#!/usr/bin/env python"):
         tree = ast.parse(text)
         docstrings = set()
         for node in ast.walk(tree):
@@ -63,7 +63,9 @@ def behavioural_strings(path) -> str:
 def code_files():
     for d in CODE_DIRS:
         for p in sorted((REPO / d).rglob("*")):
-            if p.is_file() and p.suffix in CODE_SUFFIXES and "__pycache__" not in p.parts:
+            if "__pycache__" in p.parts or not p.is_file():
+                continue
+            if p.suffix in CODE_SUFFIXES or (p.suffix == "" and p.read_bytes()[:2] == b"#!"):
                 yield p
 
 
@@ -117,12 +119,23 @@ class MessageCatalogs(unittest.TestCase):
                 with self.subTest(lang=lang, key=key):
                     self.assertEqual(set(re.findall(r"{(\w+)}", text)), set(re.findall(r"{(\w+)}", en[key])))
 
+    NAMESPACES = ("guard", "cli", "init", "validate", "status", "record", "register")
+
     def test_code_uses_only_known_keys(self):
         en = set(catalog("en"))
+        pattern = re.compile(r'["\']((?:%s)(?:\.[a-z_]+)+)["\']' % "|".join(self.NAMESPACES))
         used = set()
         for f in code_files():
-            used.update(re.findall(r'["\'](guard\.[a-z_]+)["\']', f.read_text("utf-8")))
+            used.update(pattern.findall(f.read_text("utf-8")))
+        self.assertTrue(used)
         self.assertEqual(used - en, set())
+
+    def test_no_placeholder_shadows_the_language_argument(self):
+        # text(key, lang, **params): a {lang} placeholder would collide with the language argument.
+        for lang in (p.stem for p in I18N_DIR.glob("*.toml")):
+            for key, value in catalog(lang).items():
+                with self.subTest(lang=lang, key=key):
+                    self.assertNotIn("{lang}", value)
 
 
 class Globs(unittest.TestCase):
