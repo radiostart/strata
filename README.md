@@ -9,7 +9,7 @@ build on each other — a business plan constrains a product spec, which constra
 and where several AI conversations write those documents.
 
 > **Status: early (0.1).** The layer and track guard works and is tested. Cycles, records, agents and
-> skills are designed but not built yet. See the [roadmap](docs/en/design.md#11-roadmap).
+> skills are designed but not built yet. See the [roadmap](docs/en/design.md#12-roadmap).
 
 ## What it does
 

@@ -1,4 +1,4 @@
-<!-- i18n: source=README.md sha=63aa41bd0a6e -->
+<!-- i18n: source=README.md sha=c99bd2e7f840 -->
 # strata
 
 **AI 에이전트가 층을 이루고 승인을 거치는 문서를 만드는 저장소를 위한 운영 층.**
@@ -10,7 +10,7 @@ strata 는 [Claude Code](https://claude.com/claude-code) 플러그인이다. 문
 여러 AI 대화가 쓴다.
 
 > **상태: 초기(0.1).** 층 · 트랙 가드는 동작하고 시험을 거쳤다. 사이클 · 기록 · 에이전트 · 스킬은
-> 설계만 있고 아직 만들지 않았다. [로드맵](docs/ko/design.md#11-로드맵)을 보라.
+> 설계만 있고 아직 만들지 않았다. [로드맵](docs/ko/design.md#12-로드맵)을 보라.
 
 ## 하는 일
 

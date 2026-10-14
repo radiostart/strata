@@ -27,7 +27,7 @@ It does four things:
 - **Not a security boundary.** Hooks prevent accidents. The lines that cannot be crossed are human
   acts: answering a gate, opening a conversation, merging a pull request.
 - **Not a shared-working-tree coordinator.** strata assumes one worktree per conversation and
-  pull-request merges. Coordination across conversations is a later, optional module (§ 11, M6).
+  pull-request merges. Coordination across conversations is a later, optional module (§ 12, M6).
 - **No domain knowledge in code.** Track names, document types, section headings, roles and evidence
   tags are data in the project manifest. Code must never contain a project's vocabulary.
 - **Not a code generator.** strata governs documents and plans. Implementation work can be tracked by
@@ -44,13 +44,13 @@ earlier project itself:
 
 | Lesson from the earlier project | strata rule |
 | --- | --- |
-| Track folder names were hard-coded in 23 tool files; renaming a track made 17 of 18 loader roles fail and an ID allocator return a silently wrong value. | All structure comes from the manifest. A lint test fails if a fixture's track names appear in code (§ 10). |
+| Track folder names were hard-coded in 23 tool files; renaming a track made 17 of 18 loader roles fail and an ID allocator return a silently wrong value. | All structure comes from the manifest. A lint test fails if a fixture's track names appear in code (§ 11). |
 | The shared library looked up configuration by **Korean section headings** of a Markdown file. | The manifest is TOML with English keys. Human-language strings (headings, labels) are manifest *values*. |
 | Only 14 of 32 configuration entries were actually read by tools; the rest was prose. | Every manifest key has a schema entry and a reader, or it is rejected as unknown. |
 | Three cycle types (refine, spec, devplan) each had their own state machine with the same shape. | One cycle engine; cycle types are declared in the manifest (§ 6). |
 | Lane and lock guards existed because several conversations shared one working tree; the project later moved to per-conversation worktrees. | Worktree + pull request is the assumed model. No lane or lock guards in the core. |
 | Coordination tooling assumed one operator machine (launchd, local inbox). | Coordination is out of the core. If added, it uses Claude Code's native session features. |
-| Ranking context by keyword matches alone pushed the thin current layer below thick archives: across 16 test queries, only 6% of the top-8 results came from current plans, 32% were cycle snapshots and 34% were duplicates. | Context ranking multiplies by layer weight, drops duplicates and leaves finished cycles out by default (§ 7). |
+| Ranking context by keyword matches alone pushed the thin current layer below thick archives: across 16 test queries, only 6% of the top-8 results came from current plans, 32% were cycle snapshots and 34% were duplicates. | Context ranking multiplies by layer weight, drops duplicates and leaves finished cycles out by default (§ 8). |
 
 ## 3. Principles
 
@@ -92,8 +92,10 @@ second.
 | **register** | An append-only list of upward reports or open issues, with its own ID prefix. |
 | **record** | The append-only run log (`.strata/records/YYYY-MM.md`). |
 | **evidence tag** | A label such as `[measured]` or `[assumed]`, declared in the manifest with its reference rule. |
-| **access scope** | What one cycle step may read and write, declared per step in the manifest (§ 7.1). |
-| **section index** | Markdown documents split into heading-level sections, scored against a query to choose context (§ 7.2). |
+| **access scope** | What one cycle step may read and write, declared per step in the manifest (§ 8.1). |
+| **section index** | Markdown documents split into heading-level sections, scored against a query to choose context (§ 8.2). |
+| **change file** | One proposed change to one document, inside a cycle's `changes/` folder. Applied only after approval (§ 7.2). |
+| **session brief** | The short orientation printed when a conversation starts in a strata project (§ 7.3). |
 
 ## 5. Layers and boundaries
 
@@ -118,7 +120,7 @@ second.
 | --- | --- | --- | --- |
 | **Layer** | The mode of every layer (§ 5.1) | `layer_guard` hook | Blocks |
 | **Track** | Closed tracks are not written | `layer_guard` hook | Blocks |
-| **Cycle** | Unapproved proposals stay in their cycle folder | Loader's `writable_paths` + cycle engine | Contract |
+| **Cycle** | Unapproved proposals stay in their cycle folder | Loader's `writable_paths` + cycle engine + apply pre-flight | Contract |
 | **Role** | Out-of-role writes are visible | `role_shadow` hook | Records only |
 
 The cycle boundary is a contract on purpose: a hook cannot tell a subagent from its caller, and the
@@ -235,13 +237,127 @@ the `strata cycle` command, which writes a record line (M3).
 Layers are matched **in declaration order; the first match wins.** Paths that match no layer are not
 judged. The manifest file itself (`.strata/strata.toml`) is always writable.
 
-## 7. Context selection
+## 7. Document lifecycle
+
+### 7.1 Where documents live
+
+Everything is a Markdown file in the project's git repository. There is no database.
+
+| What | Where | Typical layer mode | Written by |
+| --- | --- | --- | --- |
+| Cycle working files | `{track}/{cycle folder}/{PREFIX}-{nnn}-{slug}/` | `scratch` | the agent of each step, inside its access scope |
+| Cycle state | `{cycle}/.state.json` | `scratch` | `strata cycle` only |
+| Inputs and gate answers | `{cycle}/inputs/` | `frozen` | the skill, verbatim, before the step that uses them |
+| Proposed changes | `{cycle}/changes/` | `scratch` | the plan step |
+| Decision drafts | `{cycle}/decisions/` | `scratch` | the plan step |
+| Current documents | for example `{track}/plan/` | `living` | `strata cycle apply` |
+| Decision records | for example `{track}/decisions/` | `append-only` | `strata cycle apply` |
+| Evidence | for example `{track}/archive/research/` | `frozen` | research steps, once |
+| Registers | declared in `[[registers]]` | `append-only` | `strata register add` or `strata cycle apply` |
+| Run records | `.strata/records/YYYY-MM.md` | `append-only` | `strata record` |
+
+- **Cycle folders stay after a cycle closes.** They become the evidence behind the decision records the
+  cycle produced.
+- **Inputs are frozen inside a scratch folder.** Declare an `inputs` layer before the cycle's scratch
+  layer; the first match wins (§ 6). A verbatim answer then cannot be edited after the fact.
+- **State is JSON**, because the standard library can read TOML but not write it.
+- The "written by" column is partly a contract. The guard blocks what a layer mode forbids, but an
+  agent outside any cycle may still edit a living document. Such edits are visible in git and, from
+  M5, in the role ledger.
+
+### 7.2 Promotion: how an approved proposal reaches the documents
+
+A cycle proposes changes as **change files**, one per target document, in `{cycle}/changes/`:
+
+```markdown
+---
+target: tracks/business/plan/04-launch.md
+action: modify          # create | modify | append | retire
+---
+
+Narrow the trial to the districts named in the request.
+
+<!-- strata:current -->
+The trial runs in one district.
+<!-- strata:revised -->
+The trial runs in two neighbouring districts.
+<!-- strata:end -->
+```
+
+| Action | Meaning |
+| --- | --- |
+| `modify` | One or more current/revised pairs. Each current block must occur exactly once in the target. |
+| `create` | The revised block is the whole new file. The target must not exist. |
+| `append` | The revised block is added at the end. Used for registers and append-only documents. |
+| `retire` | Sets the target's status to `[documents] retired_status`. The body does not change. |
+
+The markers are HTML comments, so a change file reads naturally in any language and no heading text is
+parsed.
+
+**Decision records** are drafted in `{cycle}/decisions/` without a number. Apply gives each the next
+free ID in the target folder and adds `based_on: {cycle id}`.
+
+`strata cycle apply --id RF-001` runs in three phases:
+
+1. **Check the approval.** The cycle state must be `approved`, and the approval answer must exist in
+   `inputs/` and name the approver role.
+2. **Pre-flight every change before writing anything.** The target must exist or not, as the action
+   requires. Every current block must still match exactly once. The action must be allowed by the
+   target's layer mode, so existing `immutable` and `frozen` files are never touched. Every resulting
+   document is validated in memory. Any failure stops the whole apply and nothing is written.
+3. **Write, then record.** Write all changes, number and write the decision records, append a record
+   line, set the state to `applied`, and print the downstream impacts the plan declared. Apply does not
+   open the next cycle; a person does.
+
+A target that no longer matches means the documents changed after approval. The cycle goes back to the
+person; the tool never merges around the difference.
+
+An answer that approves "only part", "with changes" or "not now" is not an approval. The skill stores
+the answer verbatim and asks whether to open a new cycle or stop. It never applies a subset.
+
+**Why a tool and not the agent.** In the earlier project the agent applied change files by hand, and a
+separate rule had to catch the plan and the change files disagreeing. A tool that applies exact text
+pairs makes the applied result equal to what was approved, byte for byte, and turns a drifted target
+into a stop instead of a silent merge.
+
+### 7.3 Session brief: how a conversation finds its way
+
+When a conversation starts in a project with a manifest, a `SessionStart` hook prints a short brief:
+
+- the project name and the open tracks;
+- open cycles, their step and whose turn it is — waiting for an answer, or approved and waiting to be
+  applied (from M3);
+- the documents to read first, from `[context] start`;
+- the strata skills available.
+
+The brief is capped at `[context] brief_chars` (default 1,500 characters). It names files instead of
+including them, and it is written in `project.language`. Without a manifest the hook prints nothing.
+
+### 7.4 Manifest keys for the lifecycle (planned — M2 and M3)
+
+Like § 8.3, these keys are **not accepted by the loader yet**.
+
+```toml
+[documents]
+retired_status = "superseded"          # what a `retire` change sets
+
+[context]
+start = ["README.md", "tracks/business/plan/index.md"]   # named in the session brief
+brief_chars = 1500
+
+[[cycles]]
+id = "refine"
+# ...
+decisions = { folder = "decisions", prefix = "D" }   # where apply numbers decision records; omit for none
+```
+
+## 8. Context selection
 
 Agents must not read large documents whole, and what they read must respect the layers (P1) and the
 separation of authors and reviewers (P3). strata selects context in two ways: a fixed scope per cycle
 step, and a scored search inside that scope.
 
-### 7.1 Access scope per step
+### 8.1 Access scope per step
 
 Each cycle step declares what it reads and writes. The loader turns that into two lists for the agent:
 `files_to_read`, in order, and `writable_paths`. Anything not listed is not read; listed exclusions win
@@ -261,7 +377,7 @@ writes = ["{cycle}/critique.md"]
 - The loader reports what it excluded, so an agent knows a sibling's output exists and must not be
   looked up.
 
-### 7.2 Scored search
+### 8.2 Scored search
 
 Inside its scope, an agent finds the parts it needs with `strata context`. Documents are indexed by
 section (H2 and H3 by default). A query is scored per section; each signal counts at most once per
@@ -293,6 +409,9 @@ Further rules:
 - **Large sections are chunked** at blank lines or table rows, so one huge log table cannot take the
   whole budget.
 - **Ties break by layer weight, then path.** Results are deterministic.
+- **The index is built per call, in memory.** No cache is written, so the index is never stale. A test
+  builds the index for a 500-document fixture inside the latency budget. If real projects outgrow it,
+  the planned fallback is a cache under `.strata/` keyed by file size and modification time.
 - **The search reports what the exclusions hid** only when an excluded section would have entered the
   top results, so the notice stays meaningful.
 
@@ -314,7 +433,7 @@ language's rules are tested with golden queries in that language's fixture.
 **Measuring it.** Each fixture carries golden queries with the sections that must appear in the top
 results. A ranking change that drops one fails the suite.
 
-### 7.3 Manifest keys for context selection (planned — M2)
+### 8.3 Manifest keys for context selection (planned — M2)
 
 These keys are part of the design and are **not accepted by the loader yet**. They will be added to the
 schema, its tests and § 6 together, when M2 is built.
@@ -336,13 +455,13 @@ budget_bytes = 40000         # maximum injected per call
 limit = 12                   # default number of results
 exclude = [".strata/records/**"]   # left out unless asked for
 
-[[cycles.access]]            # one entry per step, see § 7.1
+[[cycles.access]]            # one entry per step, see § 8.1
 step = "analysis"
 reads = ["{track}/plan/**", "{cycle}/inputs/**", "{cycle}/request.md"]
 writes = ["{cycle}/analysis.md"]
 ```
 
-## 8. Plugin layout
+## 9. Plugin layout
 
 ```
 .claude-plugin/
@@ -359,6 +478,8 @@ strata/                  Python package (standard library only)
   guard.py               layer and track decisions
   messages.py            message catalog lookup (en, ko)
   context/               section index, scoring, tokenisers per language, step loader   — M2
+  brief.py               session brief printed at SessionStart                       — M2
+  cycle/                 cycle state machine, change files, apply                    — M3
   i18n/en.toml, ko.toml  user-facing strings
 scripts/
   hook.py                hook entry, called by hooks/run.sh
@@ -395,7 +516,7 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
   expected.
 - Plugin skills are invoked as `/strata:<skill>` and agents as `strata:<agent>`.
 
-## 9. Language policy
+## 10. Language policy
 
 | Artifact | Language |
 | --- | --- |
@@ -406,7 +527,7 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 | README | `README.md` (English) and `README.ko.md` (Korean), same rule as documentation. |
 | Project scaffolds | One template set per language. Headings and labels are manifest values, so parsers never depend on a language. |
 
-## 10. Testing rules
+## 11. Testing rules
 
 - Standard library `unittest`; `python3 -m unittest discover -s tests`.
 - **Two fixtures, always.** Every guard and engine test runs against at least two fixture projects
@@ -417,19 +538,19 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 - **Guards are tested for latency.** A hook that takes longer than a set budget fails the suite.
 - **Translations are tested.** `tools/i18n_check.py` runs in the suite.
 
-## 11. Roadmap
+## 12. Roadmap
 
 | Milestone | Scope | Done when |
 | --- | --- | --- |
 | **M0 — Foundation** | Manifest loader and schema, layer and track guard, message catalog, i18n check, repository conventions | Guard tests pass on two fixtures; plugin installs from this repository |
 | **M1 — Records and validation** | `strata validate` (front-matter, sections, evidence tags), append-only record, registers, `strata init` scaffold | A scaffolded project validates clean in both languages |
-| **M2 — Context selection** | Section index, scored search with layer and status weights, `strata context`, per-step access scope and the loader that returns `files_to_read` and `writable_paths` (§ 7) | Golden queries pass on both fixtures; a step without an access entry is refused |
-| **M3 — Cycle engine** | Generic state machine from `[[cycles]]`: steps, rounds, asks, verdicts, answer-file approval, promotion | A cycle can stop on every hard-stop reason; approval without an answer file is refused |
+| **M2 — Context selection** | Section index, scored search with layer and status weights, `strata context`, per-step access scope and the loader that returns `files_to_read` and `writable_paths` (§ 8); session brief with tracks and start documents (§ 7.3) | Golden queries pass on both fixtures; a step without an access entry is refused |
+| **M3 — Cycle engine** | Generic state machine from `[[cycles]]`: steps, rounds, asks, verdicts, answer-file approval; change files and `strata cycle apply` with pre-flight and decision numbering (§ 7.2); open cycles in the session brief | A cycle can stop on every hard-stop reason; approval without an answer file is refused; apply on a drifted target writes nothing |
 | **M4 — Agents and skills** | Generic author, critic, arbiter and verifier agents that start from the loader | One end-to-end cycle runs on a fixture project |
 | **M5 — Roles and gates** | Role declaration, shadow ledger, gate ownership | Out-of-role writes appear in the ledger; gate answers name the role |
 | **M6 — Coordination (optional)** | Work-item adapter contract and a coordinator built on native Claude Code sessions | Defined only after a second real project uses M0–M5 |
 
-## 12. Open questions
+## 13. Open questions
 
 | # | Question | Default if unanswered |
 | --- | --- | --- |
