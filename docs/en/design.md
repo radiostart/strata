@@ -27,7 +27,7 @@ It does four things:
 - **Not a security boundary.** Hooks prevent accidents. The lines that cannot be crossed are human
   acts: answering a gate, opening a conversation, merging a pull request.
 - **Not a shared-working-tree coordinator.** strata assumes one worktree per conversation and
-  pull-request merges. Coordination across conversations is a later, optional module (§ 10, M5).
+  pull-request merges. Coordination across conversations is a later, optional module (§ 11, M6).
 - **No domain knowledge in code.** Track names, document types, section headings, roles and evidence
   tags are data in the project manifest. Code must never contain a project's vocabulary.
 - **Not a code generator.** strata governs documents and plans. Implementation work can be tracked by
@@ -35,21 +35,22 @@ It does four things:
 
 ## 2. Origin and what changed
 
-strata is a clean-room rewrite of the operating layer of **onway**, a document-first product
-project that ran three tracks (business planning → product planning → development) with 15 skills,
-17 agents and roughly 60k lines of tooling between 2026-09 and 2026-10.
+strata is a clean-room rewrite of an operating layer first built for an earlier, document-first
+product project. That project ran three tracks (business planning → product planning → development)
+with 15 skills, 17 agents and roughly 60k lines of tooling between 2026-09 and 2026-10.
 
-The **principles** carried over unchanged (§ 3). The **code** did not, for reasons measured in onway
-itself:
+The **principles** carried over unchanged (§ 3). The **code** did not, for reasons measured in the
+earlier project itself:
 
-| Lesson from onway | strata rule |
+| Lesson from the earlier project | strata rule |
 | --- | --- |
-| Track folder names were hard-coded in 23 tool files; renaming a track made 17 of 18 loader roles fail and an ID allocator return a silently wrong value. | All structure comes from the manifest. A lint test fails if a fixture's track names appear in code (§ 9). |
+| Track folder names were hard-coded in 23 tool files; renaming a track made 17 of 18 loader roles fail and an ID allocator return a silently wrong value. | All structure comes from the manifest. A lint test fails if a fixture's track names appear in code (§ 10). |
 | The shared library looked up configuration by **Korean section headings** of a Markdown file. | The manifest is TOML with English keys. Human-language strings (headings, labels) are manifest *values*. |
 | Only 14 of 32 configuration entries were actually read by tools; the rest was prose. | Every manifest key has a schema entry and a reader, or it is rejected as unknown. |
 | Three cycle types (refine, spec, devplan) each had their own state machine with the same shape. | One cycle engine; cycle types are declared in the manifest (§ 6). |
 | Lane and lock guards existed because several conversations shared one working tree; the project later moved to per-conversation worktrees. | Worktree + pull request is the assumed model. No lane or lock guards in the core. |
 | Coordination tooling assumed one operator machine (launchd, local inbox). | Coordination is out of the core. If added, it uses Claude Code's native session features. |
+| Ranking context by keyword matches alone pushed the thin current layer below thick archives: across 16 test queries, only 6% of the top-8 results came from current plans, 32% were cycle snapshots and 34% were duplicates. | Context ranking multiplies by layer weight, drops duplicates and leaves finished cycles out by default (§ 7). |
 
 ## 3. Principles
 
@@ -91,6 +92,8 @@ second.
 | **register** | An append-only list of upward reports or open issues, with its own ID prefix. |
 | **record** | The append-only run log (`.strata/records/YYYY-MM.md`). |
 | **evidence tag** | A label such as `[measured]` or `[assumed]`, declared in the manifest with its reference rule. |
+| **access scope** | What one cycle step may read and write, declared per step in the manifest (§ 7.1). |
+| **section index** | Markdown documents split into heading-level sections, scored against a query to choose context (§ 7.2). |
 
 ## 5. Layers and boundaries
 
@@ -124,7 +127,7 @@ cannot be crossed.
 
 ### 5.3 Guard behaviour rules
 
-These come directly from onway's guard regressions and are tested from day one:
+These come directly from guard regressions in the earlier project and are tested from day one:
 
 - **Inert without a manifest.** In a repository with no `.strata/strata.toml` every hook exits 0.
 - **Fail closed, but never lock the way out.** If the manifest exists but cannot be read, writes to
@@ -224,15 +227,122 @@ path = "tracks/business/registers/upward.md"
 
 **Whether a track is open is a manifest field.** Opening a track is a human decision, so it should
 show up as a reviewed diff. A separate state file would add one more thing that can be deleted or
-corrupted — in onway, a broken state file once let writes through every track guard.
+corrupted — in the earlier project, a broken state file once let writes through every track guard.
 
 Cycle state is **not** in the manifest. It lives in each cycle's folder and is changed only through
-the `strata cycle` command, which writes a record line (M2).
+the `strata cycle` command, which writes a record line (M3).
 
 Layers are matched **in declaration order; the first match wins.** Paths that match no layer are not
 judged. The manifest file itself (`.strata/strata.toml`) is always writable.
 
-## 7. Plugin layout
+## 7. Context selection
+
+Agents must not read large documents whole, and what they read must respect the layers (P1) and the
+separation of authors and reviewers (P3). strata selects context in two ways: a fixed scope per cycle
+step, and a scored search inside that scope.
+
+### 7.1 Access scope per step
+
+Each cycle step declares what it reads and writes. The loader turns that into two lists for the agent:
+`files_to_read`, in order, and `writable_paths`. Anything not listed is not read; listed exclusions win
+over inclusions.
+
+```toml
+[[cycles.access]]
+step = "critique"
+reads = ["{track}/plan/**", "{cycle}/request.md", "{cycle}/plan.md", "{cycle}/changes/**"]
+excludes = ["{cycle}/verdict.md"]
+writes = ["{cycle}/critique.md"]
+```
+
+- `{cycle}` is the cycle's own folder and `{track}` is its track's folder. Other placeholders are errors.
+- `writes` must stay inside `{cycle}`. This is how P2 ("the path is the gate") reaches the agent.
+- A step without an access entry is refused by the loader rather than given everything.
+- The loader reports what it excluded, so an agent knows a sibling's output exists and must not be
+  looked up.
+
+### 7.2 Scored search
+
+Inside its scope, an agent finds the parts it needs with `strata context`. Documents are indexed by
+section (H2 and H3 by default). A query is scored per section; each signal counts at most once per
+query token, so repetition does not inflate a score.
+
+| Signal | Default weight |
+| --- | --- |
+| heading token, exact | 10 |
+| file path segment | 8 |
+| cited path segment (a path mentioned in the section) | 6 |
+| heading token, partial | 5 |
+| front-matter `description` | 4 |
+| body word | 2 |
+| path-shaped query ↔ cited path suffix, or ↔ front-matter `sources` glob | 6 |
+
+The sum is then multiplied by:
+
+- the **layer weight** of the file's layer (`[[layers]] weight`, default 1.0), so the current layer
+  outranks an archived copy of the same words;
+- the **status weight** of the file's front-matter status (`[documents] status_weights`, for example
+  `superseded = 0.5`).
+
+Further rules:
+
+- **Duplicates collapse.** Sections with identical heading and body keep only the highest-ranked copy.
+- **Finished cycles and records are left out by default.** "Finished" comes from the cycle engine's
+  state, not from the path. An option includes them. Explicit `select:` queries always work. Until the
+  cycle engine exists (M3), no cycle counts as finished.
+- **Large sections are chunked** at blank lines or table rows, so one huge log table cannot take the
+  whole budget.
+- **Ties break by layer weight, then path.** Results are deterministic.
+- **The search reports what the exclusions hid** only when an excluded section would have entered the
+  top results, so the notice stays meaningful.
+
+Query forms:
+
+| Form | Meaning |
+| --- | --- |
+| `word word` | Optional tokens, scored together |
+| `+word other` | `+word` must appear; the rest are scored |
+| `select:path#heading, path2` | Exact sections or files, no scoring |
+
+The intended flow has three steps: list candidates with scores and sizes but no bodies, let the agent
+choose, then inject only the chosen sections within a byte budget.
+
+**Language.** Tokenising is chosen by `project.language`. For Korean, adjacent words also match their
+joined form (`접수 상태` ↔ `접수상태`) and long Hangul tokens match with or without spaces. Each
+language's rules are tested with golden queries in that language's fixture.
+
+**Measuring it.** Each fixture carries golden queries with the sections that must appear in the top
+results. A ranking change that drops one fails the suite.
+
+### 7.3 Manifest keys for context selection (planned — M2)
+
+These keys are part of the design and are **not accepted by the loader yet**. They will be added to the
+schema, its tests and § 6 together, when M2 is built.
+
+```toml
+[[layers]]
+id = "current"
+mode = "living"
+paths = ["tracks/*/plan/**"]
+weight = 1.5                 # context ranking multiplier, default 1.0
+
+[documents]
+status_weights = { superseded = 0.5 }
+
+[context]
+section_levels = [2, 3]      # heading levels that start a section
+chunk_bytes = 6000           # sections larger than twice this are chunked
+budget_bytes = 40000         # maximum injected per call
+limit = 12                   # default number of results
+exclude = [".strata/records/**"]   # left out unless asked for
+
+[[cycles.access]]            # one entry per step, see § 7.1
+step = "analysis"
+reads = ["{track}/plan/**", "{cycle}/inputs/**", "{cycle}/request.md"]
+writes = ["{cycle}/analysis.md"]
+```
+
+## 8. Plugin layout
 
 ```
 .claude-plugin/
@@ -248,12 +358,13 @@ strata/                  Python package (standard library only)
   bashwrites.py          conservative write-target extraction from Bash
   guard.py               layer and track decisions
   messages.py            message catalog lookup (en, ko)
+  context/               section index, scoring, tokenisers per language, step loader   — M2
   i18n/en.toml, ko.toml  user-facing strings
 scripts/
   hook.py                hook entry, called by hooks/run.sh
   strata                 command line entry (`strata validate`, `strata cycle …`)   — M1
-skills/                  slash commands, written in English                         — M3
-agents/                  subagents, written in English                              — M3
+skills/                  slash commands, written in English                         — M4
+agents/                  subagents, written in English                              — M4
 templates/               project scaffolds per language (en, ko)                    — M1
 tests/                   unittest suites and fixtures
 tools/                   repository maintenance tools (i18n_check, …)
@@ -284,7 +395,7 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
   expected.
 - Plugin skills are invoked as `/strata:<skill>` and agents as `strata:<agent>`.
 
-## 8. Language policy
+## 9. Language policy
 
 | Artifact | Language |
 | --- | --- |
@@ -295,7 +406,7 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 | README | `README.md` (English) and `README.ko.md` (Korean), same rule as documentation. |
 | Project scaffolds | One template set per language. Headings and labels are manifest values, so parsers never depend on a language. |
 
-## 9. Testing rules
+## 10. Testing rules
 
 - Standard library `unittest`; `python3 -m unittest discover -s tests`.
 - **Two fixtures, always.** Every guard and engine test runs against at least two fixture projects
@@ -306,21 +417,22 @@ Packaging facts this layout relies on (Claude Code plugin reference, checked 202
 - **Guards are tested for latency.** A hook that takes longer than a set budget fails the suite.
 - **Translations are tested.** `tools/i18n_check.py` runs in the suite.
 
-## 10. Roadmap
+## 11. Roadmap
 
 | Milestone | Scope | Done when |
 | --- | --- | --- |
 | **M0 — Foundation** | Manifest loader and schema, layer and track guard, message catalog, i18n check, repository conventions | Guard tests pass on two fixtures; plugin installs from this repository |
 | **M1 — Records and validation** | `strata validate` (front-matter, sections, evidence tags), append-only record, registers, `strata init` scaffold | A scaffolded project validates clean in both languages |
-| **M2 — Cycle engine** | Generic state machine from `[[cycles]]`: steps, rounds, asks, verdicts, answer-file approval, promotion | A cycle can stop on every hard-stop reason; approval without an answer file is refused |
-| **M3 — Agents and skills** | Generic author, critic, arbiter and verifier agents; loader that returns `files_to_read` and `writable_paths` per role | One end-to-end cycle runs on a fixture project |
-| **M4 — Roles and gates** | Role declaration, shadow ledger, gate ownership | Out-of-role writes appear in the ledger; gate answers name the role |
-| **M5 — Coordination (optional)** | Work-item adapter contract and a coordinator built on native Claude Code sessions | Defined only after a second real project uses M0–M4 |
+| **M2 — Context selection** | Section index, scored search with layer and status weights, `strata context`, per-step access scope and the loader that returns `files_to_read` and `writable_paths` (§ 7) | Golden queries pass on both fixtures; a step without an access entry is refused |
+| **M3 — Cycle engine** | Generic state machine from `[[cycles]]`: steps, rounds, asks, verdicts, answer-file approval, promotion | A cycle can stop on every hard-stop reason; approval without an answer file is refused |
+| **M4 — Agents and skills** | Generic author, critic, arbiter and verifier agents that start from the loader | One end-to-end cycle runs on a fixture project |
+| **M5 — Roles and gates** | Role declaration, shadow ledger, gate ownership | Out-of-role writes appear in the ledger; gate answers name the role |
+| **M6 — Coordination (optional)** | Work-item adapter contract and a coordinator built on native Claude Code sessions | Defined only after a second real project uses M0–M5 |
 
-## 11. Open questions
+## 12. Open questions
 
 | # | Question | Default if unanswered |
 | --- | --- | --- |
 | Q1 | Is Python 3.11+ an acceptable runtime requirement? | Yes |
-| Q2 | Should onway itself migrate onto strata as the first user? | Not before M3 |
-| Q3 | Should strata ship an "onway-like" preset (three tracks, three cycle types)? | Yes, at M3, as a template — not as code |
+| Q2 | Should the earlier project migrate onto strata as the first user? | Not before M4 |
+| Q3 | Should strata ship a three-track preset (three tracks, three cycle types)? | Yes, at M4, as a template — not as code |

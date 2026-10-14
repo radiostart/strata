@@ -51,6 +51,7 @@ python3 tools/i18n_check.py
 
 ## Scope
 
-- onway is the origin of the principles, not a dependency. Do not import, copy or reference onway
-  code paths; re-derive behaviour from the design document and write it fresh.
+- The earlier project in design § 2 is the origin of the principles, not a dependency. Do not import
+  or copy its code, and do not name it in anything this repository ships; re-derive behaviour from
+  the design document and write it fresh.
 - Do not use other plugins as design references unless the maintainer names one.

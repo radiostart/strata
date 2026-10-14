@@ -9,7 +9,7 @@ build on each other — a business plan constrains a product spec, which constra
 and where several AI conversations write those documents.
 
 > **Status: early (0.1).** The layer and track guard works and is tested. Cycles, records, agents and
-> skills are designed but not built yet. See the [roadmap](docs/en/design.md#10-roadmap).
+> skills are designed but not built yet. See the [roadmap](docs/en/design.md#11-roadmap).
 
 ## What it does
 
@@ -23,8 +23,10 @@ and where several AI conversations write those documents.
 - **Speaks your language.** Messages are available in English and Korean. Documentation is written in
   English and translated, with a check that fails when a translation falls behind.
 
-Planned next: bounded multi-agent cycles with machine-counted limits, approval gates backed by the
-person's verbatim answer, append-only records and upward-report registers.
+Planned next: context selection that scores document sections by heading, path, front matter and
+layer, so agents read only what they need; bounded multi-agent cycles with machine-counted limits;
+approval gates backed by the person's verbatim answer; append-only records and upward-report
+registers.
 
 ## Install
 
@@ -77,9 +79,9 @@ Repository conventions for contributors and AI agents are in [CLAUDE.md](CLAUDE.
 
 ## Origin
 
-strata is a clean-room rewrite of the operating layer built for **onway**, a document-first product
-project. The principles carried over; the code was written again so that no project's structure is
-baked into it. See [design § 2](docs/en/design.md#2-origin-and-what-changed).
+strata is a clean-room rewrite of an operating layer first built for an earlier, document-first
+product project. The principles carried over; the code was written again so that no project's
+structure is baked into it. See [design § 2](docs/en/design.md#2-origin-and-what-changed).
 
 ## License
 
